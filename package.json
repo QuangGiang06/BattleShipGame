@@ -1,18 +1,23 @@
 {
-  "name": "battleship-frontend",
+  "name": "battleship-ntgbao-backend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server/index.js",
+    "dev:server": "node --watch server/index.js",
     "build": "vite build",
+    "test": "node --test src/game/gameLogic.test.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.4",
+    "express": "^4.21.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
