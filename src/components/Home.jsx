@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function Home({ onCreateRoom, onJoinRoom, playerName, setPlayerName }) {
+  const navigate = useNavigate();
   const [roomCode, setRoomCode] = useState('');
 
   return (
@@ -23,7 +25,11 @@ function Home({ onCreateRoom, onJoinRoom, playerName, setPlayerName }) {
 
         <div className="space-y-4">
           <button
-            onClick={onCreateRoom}
+            onClick={() => {
+              if (playerName.trim()) {
+                navigate('/createRoom');
+              }
+            }}
             disabled={!playerName.trim()}
             className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-indigo-600/30 transition-all transform hover:-translate-y-1 active:translate-y-0"
           >

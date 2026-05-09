@@ -1,7 +1,9 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 
 import Home from './components/Home';
+import CreateRoom from './components/CreateRoom';
 import Splash from './components/Splash';
 import Room from './components/Room';
 import Placement from './components/Placement';
@@ -18,8 +20,9 @@ const BOARD_SIZE = 10;
 const SHIP_LENGTHS = [5, 4, 3, 3, 2];
 
 function App() {
+  const navigate = useNavigate();
+
   // Global States
-  const [gameState, setGameState] = useState('splash'); // splash | home | room | placement | match | endgame
   const [playerName, setPlayerName] = useState('');
   const [roomInfo, setRoomInfo] = useState(null); // { roomId: string, players: [{id, name, ready}] }
   const [isReady, setIsReady] = useState(false);
@@ -40,12 +43,12 @@ function App() {
     // Room Flow
     socket.on('room_created', (roomId) => {
       setRoomInfo({ roomId, players: [{ id: socket.id, name: playerName, ready: false }] });
-      setGameState('room');
+      navigate('/room');
     });
 
     socket.on('room_joined', (info) => {
       setRoomInfo(info);
-      setGameState('room');
+      navigate('/room');
     });
 
     socket.on('room_update', (info) => {
@@ -56,7 +59,7 @@ function App() {
     });
 
     socket.on('all_ready', () => {
-      setGameState('placement');
+      navigate('/placement');
     });
 
     socket.on('error', (msg) => {
@@ -65,7 +68,7 @@ function App() {
 
     // Match Flow
     socket.on('match_started', (data) => {
-      setGameState('match');
+      navigate('/match');
       setIsMyTurn(data.firstTurn === socket.id);
       setGameMessage(data.firstTurn === socket.id ? "🎯 Trận đấu bắt đầu! Lượt của bạn" : "⏳ Trận đấu bắt đầu! Đợi đối thủ...");
     });
@@ -100,7 +103,7 @@ function App() {
 
     socket.on('game_over', (data) => {
       setWinner(data.winnerName);
-      setGameState('endgame');
+      navigate('/endgame');
     });
 
     return () => {
@@ -115,14 +118,14 @@ function App() {
       socket.off('turn_changed');
       socket.off('game_over');
     };
-  }, [playerName]);
+  }, [playerName, navigate]);
 
   // Handlers - Room
   const handleCreateRoom = () => {
     if (DEV_MODE) {
       setTimeout(() => {
         setRoomInfo({ roomId: 'TEST99', players: [{ id: socket.id || '123', name: playerName, ready: false }] });
-        setGameState('room');
+        navigate('/room');
       }, 300);
       return;
     }
@@ -139,7 +142,7 @@ function App() {
             { id: socket.id || '123', name: playerName, ready: false }
           ] 
         });
-        setGameState('room');
+        navigate('/room');
       }, 300);
       return;
     }
@@ -149,18 +152,20 @@ function App() {
   const handleToggleReady = () => {
     if (DEV_MODE) {
       setIsReady(!isReady);
-      if (!isReady && roomInfo.players.length === 2) {
-        setTimeout(() => setGameState('placement'), 1000);
+      if (!isReady && roomInfo?.players?.length === 2) {
+        setTimeout(() => navigate('/placement'), 1000);
       }
       return;
     }
-    socket.emit('player_ready', { roomId: roomInfo.roomId, ready: !isReady });
+    socket.emit('player_ready', { roomId: roomInfo?.roomId, ready: !isReady });
     setIsReady(!isReady);
   };
 
   const handleLeaveRoom = () => {
-    socket.emit('leave_room', { roomId: roomInfo?.roomId });
-    setGameState('home');
+    if (roomInfo) {
+      socket.emit('leave_room', { roomId: roomInfo.roomId });
+    }
+    navigate('/home');
     setRoomInfo(null);
     setIsReady(false);
   };
@@ -200,13 +205,13 @@ function App() {
   const handleSubmitShips = () => {
     if (DEV_MODE) {
       setTimeout(() => {
-        setGameState('match');
+        navigate('/match');
         setIsMyTurn(true);
         setGameMessage("🎯 Trận đấu bắt đầu! Lượt của bạn");
       }, 1000);
       return;
     }
-    socket.emit('submit_ships', { roomId: roomInfo.roomId, board: myBoard });
+    socket.emit('submit_ships', { roomId: roomInfo?.roomId, board: myBoard });
     // Keep showing placement board but wait for match_started
   };
 
@@ -238,7 +243,7 @@ function App() {
       return;
     }
 
-    socket.emit('fire_cell', { roomId: roomInfo.roomId, index });
+    socket.emit('fire_cell', { roomId: roomInfo?.roomId, index });
     const newOpponentBoard = [...opponentBoard];
     newOpponentBoard[index] = 'fire'; 
     setOpponentBoard(newOpponentBoard);
@@ -247,34 +252,34 @@ function App() {
   const handleSurrender = () => {
     if (DEV_MODE) {
       setWinner(roomInfo?.players?.find(p => p.id !== socket.id)?.name || "Địch thủ");
-      setGameState('endgame');
+      navigate('/endgame');
       return;
     }
-    socket.emit('surrender', { roomId: roomInfo.roomId, playerName });
+    socket.emit('surrender', { roomId: roomInfo?.roomId, playerName });
   };
 
   const handleQuitMatch = () => {
     if (DEV_MODE) {
-      setGameState('home');
+      navigate('/home');
       setRoomInfo(null);
       setIsReady(false);
       return;
     }
-    socket.emit('leave_room', { roomId: roomInfo.roomId });
-    setGameState('home');
+    socket.emit('leave_room', { roomId: roomInfo?.roomId });
+    navigate('/home');
     setRoomInfo(null);
     setIsReady(false);
   };
 
   // Handlers - Endgame
   const handleRematch = () => {
-    socket.emit('rematch_request', { roomId: roomInfo.roomId });
+    socket.emit('rematch_request', { roomId: roomInfo?.roomId });
     // Reset state for new match
     setMyBoard(Array(BOARD_SIZE * BOARD_SIZE).fill(null));
     setOpponentBoard(Array(BOARD_SIZE * BOARD_SIZE).fill(null));
     setCurrentShipIndex(0);
     setIsReady(false);
-    setGameState('room'); // Go back to room waiting state
+    navigate('/room'); // Go back to room waiting state
   };
 
   return (
@@ -289,59 +294,61 @@ function App() {
       <div className="relative z-10 w-full max-w-7xl mx-auto py-8">
         <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} />
 
-        {gameState === 'splash' && (
-          <Splash onStart={() => setGameState('home')} />
-        )}
-
-        {gameState === 'home' && (
-          <Home 
-            playerName={playerName} 
-            setPlayerName={setPlayerName} 
-            onCreateRoom={handleCreateRoom}
-            onJoinRoom={handleJoinRoom}
-          />
-        )}
-
-        {gameState === 'room' && (
-          <Room 
-            roomInfo={roomInfo}
-            isReady={isReady}
-            onToggleReady={handleToggleReady}
-            onLeaveRoom={handleLeaveRoom}
-          />
-        )}
-
-        {gameState === 'placement' && (
-          <Placement 
-            myBoard={myBoard}
-            currentShipIndex={currentShipIndex}
-            isHorizontal={isHorizontal}
-            onCellClick={handlePlacementClick}
-            onToggleDirection={() => setIsHorizontal(!isHorizontal)}
-            onReady={handleSubmitShips}
-          />
-        )}
-
-        {gameState === 'match' && (
-          <Match 
-            isMyTurn={isMyTurn}
-            gameMessage={gameMessage}
-            myBoard={myBoard}
-            opponentBoard={opponentBoard}
-            onAttack={handleAttack}
-            onSurrender={handleSurrender}
-            onQuitMatch={handleQuitMatch}
-          />
-        )}
-
-        {gameState === 'endgame' && (
-          <Endgame 
-            winner={winner}
-            isMe={winner === playerName}
-            onRematch={handleRematch}
-            onQuit={handleLeaveRoom}
-          />
-        )}
+        <Routes>
+          <Route path="/" element={<Splash onStart={() => navigate('/home')} />} />
+          <Route path="/home" element={
+            <Home 
+              playerName={playerName} 
+              setPlayerName={setPlayerName} 
+              onCreateRoom={handleCreateRoom}
+              onJoinRoom={handleJoinRoom}
+            />
+          } />
+          <Route path="/createRoom" element={
+            <CreateRoom 
+              playerName={playerName} 
+              setPlayerName={setPlayerName} 
+              onCreateRoom={handleCreateRoom} 
+            />
+          } />
+          <Route path="/room" element={
+            <Room 
+              roomInfo={roomInfo}
+              isReady={isReady}
+              onToggleReady={handleToggleReady}
+              onLeaveRoom={handleLeaveRoom}
+            />
+          } />
+          <Route path="/placement" element={
+            <Placement 
+              myBoard={myBoard}
+              currentShipIndex={currentShipIndex}
+              isHorizontal={isHorizontal}
+              onCellClick={handlePlacementClick}
+              onToggleDirection={() => setIsHorizontal(!isHorizontal)}
+              onReady={handleSubmitShips}
+            />
+          } />
+          <Route path="/match" element={
+            <Match 
+              isMyTurn={isMyTurn}
+              gameMessage={gameMessage}
+              myBoard={myBoard}
+              opponentBoard={opponentBoard}
+              onAttack={handleAttack}
+              onSurrender={handleSurrender}
+              onQuitMatch={handleQuitMatch}
+            />
+          } />
+          <Route path="/endgame" element={
+            <Endgame 
+              winner={winner}
+              isMe={winner === playerName}
+              onRematch={handleRematch}
+              onQuit={handleLeaveRoom}
+            />
+          } />
+        </Routes>
       </div>
     </div>
   );
