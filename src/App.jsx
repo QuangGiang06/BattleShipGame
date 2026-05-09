@@ -1,24 +1,71 @@
-import React, { useState, useEffect } from 'react'; // Đã thêm useEffect vào đây
+import  { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-// Kết nối tới server của Khoi (Người 2)
-const socket = io("http://localhost:3000"); 
+import Home from './components/Home';
+import Splash from './components/Splash';
+import Room from './components/Room';
+import Placement from './components/Placement';
+import Match from './components/Match';
+import Endgame from './components/Endgame';
+import ErrorToast from './components/ErrorToast';
+
+const socket = io("http://localhost:3000");
+
+// Đặt bằng true để test UI khi chưa có Backend, false khi ráp với Backend thật
+const DEV_MODE = true;
 
 const BOARD_SIZE = 10;
 const SHIP_LENGTHS = [5, 4, 3, 3, 2];
 
 function App() {
-  const [isMyTurn, setIsMyTurn] = useState(false); // Quản lý lượt bắn
-  const [gameMessage, setGameMessage] = useState("Giai đoạn: Dàn quân"); // Thông báo trận đấu
+  // Global States
+  const [gameState, setGameState] = useState('splash'); // splash | home | room | placement | match | endgame
+  const [playerName, setPlayerName] = useState('');
+  const [roomInfo, setRoomInfo] = useState(null); // { roomId: string, players: [{id, name, ready}] }
+  const [isReady, setIsReady] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [winner, setWinner] = useState(null); // Name of the winner
+
+  // Match States
+  const [isMyTurn, setIsMyTurn] = useState(false);
+  const [gameMessage, setGameMessage] = useState('');
   const [myBoard, setMyBoard] = useState(Array(BOARD_SIZE * BOARD_SIZE).fill(null));
   const [opponentBoard, setOpponentBoard] = useState(Array(BOARD_SIZE * BOARD_SIZE).fill(null));
-  const [isPlacementPhase, setIsPlacementPhase] = useState(true);
+  
+  // Placement States
   const [isHorizontal, setIsHorizontal] = useState(true);
   const [currentShipIndex, setCurrentShipIndex] = useState(0);
 
-  // Lắng nghe tín hiệu từ Server (Backend của Khoi)
   useEffect(() => {
+    // Room Flow
+    socket.on('room_created', (roomId) => {
+      setRoomInfo({ roomId, players: [{ id: socket.id, name: playerName, ready: false }] });
+      setGameState('room');
+    });
+
+    socket.on('room_joined', (info) => {
+      setRoomInfo(info);
+      setGameState('room');
+    });
+
+    socket.on('room_update', (info) => {
+      setRoomInfo(info);
+      // Check if this player is still ready
+      const me = info.players.find(p => p.id === socket.id);
+      if (me) setIsReady(me.ready);
+    });
+
+    socket.on('all_ready', () => {
+      setGameState('placement');
+    });
+
+    socket.on('error', (msg) => {
+      setErrorMsg(msg);
+    });
+
+    // Match Flow
     socket.on('match_started', (data) => {
+      setGameState('match');
       setIsMyTurn(data.firstTurn === socket.id);
       setGameMessage(data.firstTurn === socket.id ? "🎯 Trận đấu bắt đầu! Lượt của bạn" : "⏳ Trận đấu bắt đầu! Đợi đối thủ...");
     });
@@ -26,7 +73,6 @@ function App() {
     socket.on('shot_result', (data) => {
       setGameMessage(data.result === 'hit' ? "💥 TRÚNG RỒI! Bắn tiếp đi!" : "💧 Hụt rồi... Đổi lượt.");
       setIsMyTurn(data.result === 'hit');
-      // Dùng prev để tránh lỗi dữ liệu cũ
       setOpponentBoard(prev => {
         const updated = [...prev];
         updated[data.index] = data.result;
@@ -40,7 +86,6 @@ function App() {
         updated[data.index] = data.result === 'hit' ? 'X' : 'O';
         return updated;
       });
-      // Nếu mình bị bắn trúng, thường là đối thủ bắn tiếp, nếu hụt thì đến lượt mình
       if (data.result === 'miss') {
         setIsMyTurn(true);
         setGameMessage("🎯 Đối thủ bắn trượt! Đến lượt bạn!");
@@ -53,14 +98,74 @@ function App() {
       setGameMessage(myTurn ? "🎯 Đến lượt bạn bắn!" : "⏳ Đối thủ đang ngắm bắn...");
     });
 
+    socket.on('game_over', (data) => {
+      setWinner(data.winnerName);
+      setGameState('endgame');
+    });
+
     return () => {
+      socket.off('room_created');
+      socket.off('room_joined');
+      socket.off('room_update');
+      socket.off('all_ready');
+      socket.off('error');
       socket.off('match_started');
       socket.off('shot_result');
       socket.off('opponent_shot');
       socket.off('turn_changed');
       socket.off('game_over');
     };
-  }, []); // Để mảng rỗng để chỉ đăng ký socket một lần duy nhất
+  }, [playerName]);
+
+  // Handlers - Room
+  const handleCreateRoom = () => {
+    if (DEV_MODE) {
+      setTimeout(() => {
+        setRoomInfo({ roomId: 'TEST99', players: [{ id: socket.id || '123', name: playerName, ready: false }] });
+        setGameState('room');
+      }, 300);
+      return;
+    }
+    socket.emit('create_room', { playerName });
+  };
+
+  const handleJoinRoom = (roomId) => {
+    if (DEV_MODE) {
+      setTimeout(() => {
+        setRoomInfo({ 
+          roomId, 
+          players: [
+            { id: 'other', name: 'Địch thủ', ready: true },
+            { id: socket.id || '123', name: playerName, ready: false }
+          ] 
+        });
+        setGameState('room');
+      }, 300);
+      return;
+    }
+    socket.emit('join_room', { roomId, playerName });
+  };
+
+  const handleToggleReady = () => {
+    if (DEV_MODE) {
+      setIsReady(!isReady);
+      if (!isReady && roomInfo.players.length === 2) {
+        setTimeout(() => setGameState('placement'), 1000);
+      }
+      return;
+    }
+    socket.emit('player_ready', { roomId: roomInfo.roomId, ready: !isReady });
+    setIsReady(!isReady);
+  };
+
+  const handleLeaveRoom = () => {
+    socket.emit('leave_room', { roomId: roomInfo?.roomId });
+    setGameState('home');
+    setRoomInfo(null);
+    setIsReady(false);
+  };
+
+  // Handlers - Placement
   const checkValidPlacement = (startIndex, length, horizontal) => {
     const row = Math.floor(startIndex / BOARD_SIZE);
     const col = startIndex % BOARD_SIZE;
@@ -73,8 +178,8 @@ function App() {
     return true;
   };
 
-  const handleCellClick = (index) => {
-    if (!isPlacementPhase || currentShipIndex >= SHIP_LENGTHS.length) return;
+  const handlePlacementClick = (index) => {
+    if (currentShipIndex >= SHIP_LENGTHS.length) return;
     const length = SHIP_LENGTHS[currentShipIndex];
     
     if (checkValidPlacement(index, length, isHorizontal)) {
@@ -88,112 +193,156 @@ function App() {
       setMyBoard(newBoard);
       setCurrentShipIndex(currentShipIndex + 1);
     } else {
-      alert("Vị trí này không đặt được tàu đâu bạn ơi!");
+      setErrorMsg("Vị trí này không đặt được tàu!");
     }
   };
 
+  const handleSubmitShips = () => {
+    if (DEV_MODE) {
+      setTimeout(() => {
+        setGameState('match');
+        setIsMyTurn(true);
+        setGameMessage("🎯 Trận đấu bắt đầu! Lượt của bạn");
+      }, 1000);
+      return;
+    }
+    socket.emit('submit_ships', { roomId: roomInfo.roomId, board: myBoard });
+    // Keep showing placement board but wait for match_started
+  };
+
+  // Handlers - Match
   const handleAttack = (index) => {
-    if (isPlacementPhase || !isMyTurn) return;
-    if (opponentBoard[index]) return; // Ô này bắn rồi thì thôi
+    if (!isMyTurn || opponentBoard[index]) return;
+    
+    if (DEV_MODE) {
+      const newOpponentBoard = [...opponentBoard];
+      newOpponentBoard[index] = 'fire'; 
+      setOpponentBoard(newOpponentBoard);
+      
+      setTimeout(() => {
+        const isHit = Math.random() > 0.5;
+        const updated = [...newOpponentBoard];
+        updated[index] = isHit ? 'hit' : 'miss';
+        setOpponentBoard(updated);
+        setGameMessage(isHit ? "💥 TRÚNG RỒI! Bắn tiếp đi!" : "💧 Hụt rồi...");
+        
+        if (!isHit) {
+          setIsMyTurn(false);
+          setGameMessage("⏳ Đối thủ đang ngắm bắn...");
+          setTimeout(() => {
+            setGameMessage("🎯 Đến lượt bạn bắn!");
+            setIsMyTurn(true);
+          }, 2000);
+        }
+      }, 500);
+      return;
+    }
 
-    // Gửi lệnh bắn lên cho Khoi xử lý
-    socket.emit('fire_cell', { index });
-
-    // Hiển thị trạng thái chờ xử lý (màu cam nhấp nháy)
+    socket.emit('fire_cell', { roomId: roomInfo.roomId, index });
     const newOpponentBoard = [...opponentBoard];
     newOpponentBoard[index] = 'fire'; 
     setOpponentBoard(newOpponentBoard);
   };
 
-  const startBattle = () => {
-    setIsPlacementPhase(false);
-    // Chốt đội hình và gửi cho server
-    socket.emit('submit_ships', { board: myBoard });
+  const handleSurrender = () => {
+    if (DEV_MODE) {
+      setWinner(roomInfo?.players?.find(p => p.id !== socket.id)?.name || "Địch thủ");
+      setGameState('endgame');
+      return;
+    }
+    socket.emit('surrender', { roomId: roomInfo.roomId, playerName });
+  };
+
+  const handleQuitMatch = () => {
+    if (DEV_MODE) {
+      setGameState('home');
+      setRoomInfo(null);
+      setIsReady(false);
+      return;
+    }
+    socket.emit('leave_room', { roomId: roomInfo.roomId });
+    setGameState('home');
+    setRoomInfo(null);
+    setIsReady(false);
+  };
+
+  // Handlers - Endgame
+  const handleRematch = () => {
+    socket.emit('rematch_request', { roomId: roomInfo.roomId });
+    // Reset state for new match
+    setMyBoard(Array(BOARD_SIZE * BOARD_SIZE).fill(null));
+    setOpponentBoard(Array(BOARD_SIZE * BOARD_SIZE).fill(null));
+    setCurrentShipIndex(0);
+    setIsReady(false);
+    setGameState('room'); // Go back to room waiting state
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-5 flex flex-col items-center font-sans">
-      <h1 className="text-4xl font-black mb-8 text-cyan-400 tracking-tighter">BATTLESHIP</h1>
-      {/* Hệ thống HUD Thông báo - Điểm nhấn cho UI của Người 3 */}
-<div className={`w-full max-w-2xl mb-8 p-4 rounded-xl border-2 transition-all duration-500 shadow-lg ${
-  isMyTurn ? 'border-cyan-500 bg-cyan-500/10' : 'border-rose-500/30 bg-slate-800'
-}`}>
-  <div className="flex justify-between items-center">
-    <div className="flex flex-col">
-      <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">Trạng thái</span>
-      <h2 className={`text-xl font-black ${isMyTurn ? 'text-cyan-400 animate-pulse' : 'text-slate-300'}`}>
-        {gameMessage}
-      </h2>
-    </div>
-    
-    <div className="text-right">
-      <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">Lượt chơi</span>
-      <div className={`text-sm font-bold px-3 py-1 rounded-full ${
-        isMyTurn ? 'bg-cyan-500 text-slate-900' : 'bg-slate-700 text-slate-400'
-      }`}>
-        {isMyTurn ? "YOUR TURN" : "WAITING..."}
+    <div className="min-h-screen bg-slate-950 text-white p-5 font-sans relative overflow-x-hidden selection:bg-cyan-500/30">
+      
+      {/* Background Decor */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-600/10 rounded-full blur-[120px]"></div>
       </div>
-    </div>
-  </div>
-</div>
-      <div className="flex gap-6 mb-10">
-        <div className="p-4 bg-slate-800 rounded-lg border border-cyan-500 shadow-lg shadow-cyan-500/20">
-          <p className="text-xs text-slate-400 uppercase font-bold mb-1">Đang đặt tàu dài:</p>
-          <p className="text-2xl font-black text-cyan-300">
-            {currentShipIndex < SHIP_LENGTHS.length ? SHIP_LENGTHS[currentShipIndex] + " ô" : "Đã xong!"}
-          </p>
-        </div>
-        
-        {isPlacementPhase && (
-          <button 
-            onClick={() => setIsHorizontal(!isHorizontal)}
-            className="px-8 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-black transition-all shadow-lg active:scale-95"
-          >
-            XOAY: {isHorizontal ? "NGANG" : "DỌC"}
-          </button>
+
+      <div className="relative z-10 w-full max-w-7xl mx-auto py-8">
+        <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} />
+
+        {gameState === 'splash' && (
+          <Splash onStart={() => setGameState('home')} />
+        )}
+
+        {gameState === 'home' && (
+          <Home 
+            playerName={playerName} 
+            setPlayerName={setPlayerName} 
+            onCreateRoom={handleCreateRoom}
+            onJoinRoom={handleJoinRoom}
+          />
+        )}
+
+        {gameState === 'room' && (
+          <Room 
+            roomInfo={roomInfo}
+            isReady={isReady}
+            onToggleReady={handleToggleReady}
+            onLeaveRoom={handleLeaveRoom}
+          />
+        )}
+
+        {gameState === 'placement' && (
+          <Placement 
+            myBoard={myBoard}
+            currentShipIndex={currentShipIndex}
+            isHorizontal={isHorizontal}
+            onCellClick={handlePlacementClick}
+            onToggleDirection={() => setIsHorizontal(!isHorizontal)}
+            onReady={handleSubmitShips}
+          />
+        )}
+
+        {gameState === 'match' && (
+          <Match 
+            isMyTurn={isMyTurn}
+            gameMessage={gameMessage}
+            myBoard={myBoard}
+            opponentBoard={opponentBoard}
+            onAttack={handleAttack}
+            onSurrender={handleSurrender}
+            onQuitMatch={handleQuitMatch}
+          />
+        )}
+
+        {gameState === 'endgame' && (
+          <Endgame 
+            winner={winner}
+            isMe={winner === playerName}
+            onRematch={handleRematch}
+            onQuit={handleLeaveRoom}
+          />
         )}
       </div>
-
-      <div className="flex flex-wrap gap-12 justify-center items-start">
-        <div className="flex flex-col items-center">
-          <h2 className="mb-4 font-bold text-emerald-400 uppercase">Hạm đội của tôi</h2>
-          <div className="grid grid-cols-10 gap-1 bg-slate-700 p-1 rounded-md border border-slate-600">
-            {myBoard.map((cell, i) => (
-              <div 
-                key={i} 
-                onClick={() => handleCellClick(i)}
-                className={`w-8 h-8 sm:w-10 sm:h-10 border border-slate-800 cursor-pointer transition-all
-                  ${cell === 'S' ? 'bg-cyan-500 shadow-[0_0_10px_#06b6d4]' : 'bg-slate-800 hover:bg-slate-600'}`}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center">
-          <h2 className="mb-4 font-bold text-rose-500 uppercase">Vùng biển đối thủ</h2>
-          <div className="grid grid-cols-10 gap-1 bg-slate-700 p-1 rounded-md border border-slate-600 shadow-2xl">
-            {opponentBoard.map((cell, i) => (
-              <div 
-                key={i} 
-                onClick={() => handleAttack(i)} 
-                className={`w-8 h-8 sm:w-10 sm:h-10 border border-slate-800 cursor-crosshair transition-all
-                  ${cell === 'fire' ? 'bg-orange-600 animate-pulse shadow-[0_0_15px_orange]' : 
-                    cell === 'hit' ? 'bg-rose-600' : 
-                    cell === 'miss' ? 'bg-slate-400' : 'bg-slate-800 hover:bg-rose-900/40'}`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {currentShipIndex === SHIP_LENGTHS.length && isPlacementPhase && (
-        <button 
-          onClick={startBattle}
-          className="mt-12 px-12 py-4 bg-emerald-600 hover:bg-emerald-500 font-black rounded-full shadow-xl transition-all transform hover:scale-105 active:scale-95 uppercase tracking-widest"
-        >
-          SẴN SÀNG CHIẾN ĐẤU
-        </button>
-      )}
     </div>
   );
 }
