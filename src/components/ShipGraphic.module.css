@@ -1,0 +1,516 @@
+.segment {
+  position: absolute;
+  z-index: 3;
+  inset: 12% -5%;
+  border: 1px solid rgb(186 230 253 / 0.72);
+  background:
+    linear-gradient(180deg, #d8e3e9 0 14%, #8296a3 15% 48%, #465966 49% 78%, #243641 79%);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.7),
+    inset 0 -4px 5px rgb(2 6 23 / 0.45),
+    0 3px 7px rgb(0 0 0 / 0.48);
+  pointer-events: none;
+  transform-origin: center;
+}
+
+.vertical {
+  inset: -5% 12%;
+  background:
+    linear-gradient(90deg, #d8e3e9 0 14%, #8296a3 15% 48%, #465966 49% 78%, #243641 79%);
+}
+
+.horizontal.bow {
+  clip-path: polygon(0 50%, 17% 5%, 100% 5%, 100% 95%, 17% 95%);
+}
+
+.horizontal.stern {
+  clip-path: polygon(0 5%, 78% 5%, 100% 24%, 100% 76%, 78% 95%, 0 95%);
+}
+
+.vertical.bow {
+  clip-path: polygon(50% 0, 95% 17%, 95% 100%, 5% 100%, 5% 17%);
+}
+
+.vertical.stern {
+  clip-path: polygon(5% 0, 95% 0, 95% 78%, 76% 100%, 24% 100%, 5% 78%);
+}
+
+.segment[data-ship-type="carrier"] {
+  border-color: rgb(203 213 225 / 0.8);
+  background:
+    linear-gradient(180deg, #cbd5dc 0 12%, #667985 13% 82%, #263943 83%);
+}
+
+.vertical[data-ship-type="carrier"] {
+  background:
+    linear-gradient(90deg, #cbd5dc 0 12%, #667985 13% 82%, #263943 83%);
+}
+
+.segment[data-ship-type="submarine"] {
+  inset-block: 25%;
+  border-color: rgb(125 211 252 / 0.55);
+  border-radius: 45%;
+  background: linear-gradient(180deg, #8295a1, #354854 52%, #172935);
+}
+
+.vertical[data-ship-type="submarine"] {
+  inset: -5% 25%;
+  background: linear-gradient(90deg, #8295a1, #354854 52%, #172935);
+}
+
+.hullShade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent, rgb(255 255 255 / 0.13) 35%, transparent 65%),
+    repeating-linear-gradient(90deg, transparent 0 19%, rgb(2 6 23 / 0.16) 20% 21%);
+  mix-blend-mode: screen;
+}
+
+.vertical .hullShade {
+  background:
+    linear-gradient(180deg, transparent, rgb(255 255 255 / 0.13) 35%, transparent 65%),
+    repeating-linear-gradient(180deg, transparent 0 19%, rgb(2 6 23 / 0.16) 20% 21%);
+}
+
+.deckLine,
+.keelLine {
+  position: absolute;
+  left: 8%;
+  width: 84%;
+  height: 1px;
+  border-radius: 999px;
+}
+
+.deckLine {
+  top: 28%;
+  background: rgb(241 245 249 / 0.72);
+}
+
+.keelLine {
+  bottom: 17%;
+  background: rgb(2 6 23 / 0.48);
+}
+
+.vertical .deckLine,
+.vertical .keelLine {
+  top: 8%;
+  width: 1px;
+  height: 84%;
+}
+
+.vertical .deckLine {
+  left: 28%;
+}
+
+.vertical .keelLine {
+  right: 17%;
+  bottom: auto;
+  left: auto;
+}
+
+.porthole {
+  position: absolute;
+  left: 22%;
+  bottom: 27%;
+  width: 4px;
+  height: 3px;
+  border-radius: 50%;
+  background: #bae6fd;
+  box-shadow: 9px 0 #bae6fd, 18px 0 #bae6fd;
+  opacity: 0.72;
+}
+
+.vertical .porthole {
+  top: 22%;
+  right: 27%;
+  bottom: auto;
+  left: auto;
+  box-shadow: 0 9px #bae6fd, 0 18px #bae6fd;
+}
+
+.bridge {
+  position: absolute;
+  top: 19%;
+  left: 20%;
+  width: 60%;
+  height: 57%;
+  border: 1px solid rgb(15 23 42 / 0.62);
+  border-radius: 5px 5px 3px 3px;
+  background: linear-gradient(180deg, #cad6dc, #718592 48%, #334753 52%);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.45);
+}
+
+.vertical .bridge {
+  top: 20%;
+  left: 19%;
+  width: 57%;
+  height: 60%;
+}
+
+.upperDeck {
+  position: absolute;
+  top: -22%;
+  left: 20%;
+  width: 60%;
+  height: 34%;
+  border: 1px solid rgb(15 23 42 / 0.52);
+  border-radius: 3px 3px 0 0;
+  background: #aebdc5;
+}
+
+.vertical .upperDeck {
+  top: 20%;
+  right: -22%;
+  left: auto;
+  width: 34%;
+  height: 60%;
+  border-radius: 0 3px 3px 0;
+}
+
+.bridgeWindows {
+  position: absolute;
+  top: 22%;
+  left: 14%;
+  width: 72%;
+  height: 16%;
+  border-radius: 999px;
+  background: repeating-linear-gradient(90deg, #0f3342 0 4px, transparent 4px 7px);
+  opacity: 0.85;
+}
+
+.vertical .bridgeWindows {
+  top: 14%;
+  left: 22%;
+  width: 16%;
+  height: 72%;
+  background: repeating-linear-gradient(180deg, #0f3342 0 4px, transparent 4px 7px);
+}
+
+.mast {
+  position: absolute;
+  top: -46%;
+  left: 49%;
+  width: 1px;
+  height: 30%;
+  background: #cbd5e1;
+}
+
+.vertical .mast {
+  top: 49%;
+  left: auto;
+  right: -46%;
+  width: 30%;
+  height: 1px;
+}
+
+.commandTower::after {
+  content: "";
+  position: absolute;
+  right: 10%;
+  bottom: 8%;
+  width: 13%;
+  height: 54%;
+  border-radius: 2px 2px 0 0;
+  background: #4b5f6b;
+}
+
+.vertical.commandTower::after {
+  top: 10%;
+  right: 8%;
+  bottom: auto;
+  width: 54%;
+  height: 13%;
+  border-radius: 0 2px 2px 0;
+}
+
+.carrierIsland {
+  top: 11%;
+  left: 48%;
+  width: 38%;
+  height: 47%;
+}
+
+.vertical .carrierIsland {
+  top: 48%;
+  left: 11%;
+  width: 47%;
+  height: 38%;
+}
+
+.carrierIsland .upperDeck {
+  left: 16%;
+  width: 68%;
+}
+
+.conningTower {
+  top: -18%;
+  left: 27%;
+  width: 46%;
+  height: 88%;
+  border-radius: 50% 50% 25% 25%;
+  background: linear-gradient(180deg, #9aabb4, #40545f);
+}
+
+.vertical .conningTower {
+  top: 27%;
+  left: 30%;
+  width: 88%;
+  height: 46%;
+  border-radius: 25% 50% 50% 25%;
+}
+
+.conningTower .upperDeck,
+.conningTower .bridgeWindows {
+  display: none;
+}
+
+.conningTower .mast {
+  top: -36%;
+  height: 42%;
+}
+
+.vertical .conningTower .mast {
+  top: 49%;
+  right: -36%;
+  width: 42%;
+  height: 1px;
+}
+
+.gunTurret {
+  position: absolute;
+  top: 29%;
+  left: 31%;
+  width: 38%;
+  height: 40%;
+  border: 1px solid rgb(15 23 42 / 0.44);
+  border-radius: 45% 45% 3px 3px;
+  background: linear-gradient(180deg, #b9c7ce, #596d78);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.42);
+}
+
+.gunTurret::after {
+  content: "";
+  position: absolute;
+  top: 44%;
+  left: -58%;
+  width: 72%;
+  height: 3px;
+  border-radius: 999px;
+  background: #91a3ad;
+}
+
+.vertical .gunTurret {
+  top: 31%;
+  left: 29%;
+  width: 40%;
+  height: 38%;
+}
+
+.vertical .gunTurret::after {
+  top: -58%;
+  left: 44%;
+  width: 3px;
+  height: 72%;
+}
+
+.runway {
+  position: absolute;
+  top: 47%;
+  left: 8%;
+  width: 84%;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, #f8fafc 0 5px, transparent 5px 9px);
+  opacity: 0.9;
+}
+
+.vertical .runway {
+  top: 8%;
+  left: 47%;
+  width: 2px;
+  height: 84%;
+  background: repeating-linear-gradient(180deg, #f8fafc 0 5px, transparent 5px 9px);
+}
+
+.damaged {
+  filter: saturate(0.68) brightness(0.72);
+}
+
+.damaged::after {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #020617 0 22%, #7f1d1d 24% 37%, #f97316 39% 43%, transparent 45%);
+  opacity: 0.84;
+}
+
+.enemy {
+  border-color: rgb(254 202 202 / 0.86);
+}
+
+.sunk {
+  border-color: #fecaca;
+  background:
+    linear-gradient(180deg, #9f3036, #6f1d24 47%, #35090e 50%, #130407);
+  box-shadow: inset 0 0 11px rgb(0 0 0 / 0.78), 0 0 14px rgb(239 68 68 / 0.38);
+  animation: ship-reveal 0.8s ease-out both;
+}
+
+.vertical.sunk {
+  background:
+    linear-gradient(90deg, #9f3036, #6f1d24 47%, #35090e 50%, #130407);
+}
+
+.fire {
+  position: absolute;
+  top: -42%;
+  left: 37%;
+  width: 26%;
+  height: 72%;
+  border-radius: 50% 50% 45% 45%;
+  background: radial-gradient(circle at 50% 75%, #fff7ae 0 17%, #f97316 34%, #dc2626 58%, transparent 71%);
+  filter: drop-shadow(0 0 6px #f97316);
+  animation: ship-fire 0.38s ease-in-out infinite alternate;
+}
+
+.vertical .fire {
+  top: 37%;
+  left: auto;
+  right: -42%;
+  width: 72%;
+  height: 26%;
+}
+
+.miniShip {
+  position: relative;
+  display: block;
+  width: calc(26px + var(--ship-length) * 6px);
+  max-width: 100%;
+  height: 15px;
+  color: #7dd3fc;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.45));
+}
+
+.miniHull {
+  position: absolute;
+  inset: 1px 0 3px;
+  overflow: hidden;
+  clip-path: polygon(0 52%, 8% 16%, 84% 16%, 100% 42%, 94% 82%, 13% 92%);
+  background: linear-gradient(180deg, #cbd5e1, #607581 48%, #263b47 52%, #132630);
+}
+
+.miniShip[data-ship-type="submarine"] .miniHull {
+  inset-block: 4px;
+  border-radius: 50%;
+  clip-path: none;
+}
+
+.miniShip[data-ship-type="carrier"] .miniHull {
+  clip-path: polygon(0 42%, 5% 16%, 92% 16%, 100% 40%, 94% 82%, 7% 88%);
+}
+
+.miniDeckLine {
+  position: absolute;
+  top: 32%;
+  left: 10%;
+  width: 77%;
+  height: 1px;
+  background: rgb(255 255 255 / 0.68);
+}
+
+.miniBridge {
+  position: absolute;
+  top: 1px;
+  left: 52%;
+  width: 16%;
+  height: 6px;
+  border-radius: 2px 2px 0 0;
+  background: #cbd5e1;
+}
+
+.miniBridge::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 48%;
+  width: 1px;
+  height: 5px;
+  background: #e2e8f0;
+}
+
+.miniShip[data-ship-type="submarine"] .miniBridge,
+.miniShip[data-ship-type="submarine"] .miniDeckLine {
+  display: none;
+}
+
+.miniRunway {
+  position: absolute;
+  top: 49%;
+  left: 8%;
+  width: 82%;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, #fff 0 3px, transparent 3px 5px);
+}
+
+.miniPeriscope {
+  position: absolute;
+  top: -2px;
+  left: 52%;
+  width: 5px;
+  height: 5px;
+  border-top: 1px solid #e2e8f0;
+  border-left: 1px solid #e2e8f0;
+}
+
+.damageTrack {
+  position: absolute;
+  right: 8%;
+  bottom: 0;
+  left: 8%;
+  display: grid;
+  grid-template-columns: repeat(var(--ship-length), 1fr);
+  gap: 1px;
+}
+
+.damageCell {
+  height: 2px;
+  border-radius: 999px;
+  background: #67e8f9;
+}
+
+.damageCellHit {
+  background: #fb7185;
+  box-shadow: 0 0 4px rgb(244 63 94 / 0.8);
+}
+
+.miniEnemy {
+  color: #fda4af;
+}
+
+.miniSunk {
+  opacity: 0.66;
+  filter: grayscale(0.45) drop-shadow(0 0 4px rgb(239 68 68 / 0.55));
+}
+
+.miniSunk .miniHull {
+  background: linear-gradient(180deg, #a9363d, #5b1720 54%, #1f060a);
+}
+
+@keyframes ship-reveal {
+  0% { opacity: 0; filter: brightness(4); transform: scale(1.16); }
+  48% { opacity: 1; filter: brightness(1.8); }
+  100% { opacity: 1; filter: brightness(0.9); transform: scale(1); }
+}
+
+@keyframes ship-fire {
+  from { transform: translateY(2px) scaleX(0.8) rotate(-4deg); opacity: 0.74; }
+  to { transform: translateY(-2px) scaleX(1.12) rotate(5deg); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fire {
+    animation: none;
+  }
+}
